@@ -107,6 +107,141 @@
     font-size: 1.1rem;
   }
 
+  /* ---------- Add-issue card ---------- */
+  .add-card {
+    background: var(--paper);
+    border: 1px dashed var(--rule);
+    padding: 18px 16px 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    min-height: 200px;
+    transition: background 0.15s ease;
+  }
+  .add-card:hover { background: var(--paper-dark); }
+  .add-card .plus {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .add-card span { font-size: 0.85rem; }
+
+  .local-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 1px 6px;
+    margin-left: 6px;
+  }
+  .issue-remove {
+    align-self: flex-end;
+    background: none; border: none;
+    color: var(--muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ---------- Upload panel ---------- */
+  .panel-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,17,13,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .panel-overlay.open { display: flex; }
+  .panel {
+    background: var(--paper);
+    width: min(420px, 90vw);
+    padding: 28px 26px 24px;
+    border-top: 4px solid var(--accent);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .panel h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+  }
+  .panel p.hint {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+  .panel label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 14px 0 5px;
+  }
+  .panel input[type="text"],
+  .panel input[type="date"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--rule);
+    background: #fff;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.9rem;
+  }
+  .panel input[type="file"] {
+    width: 100%;
+    font-size: 0.85rem;
+    margin-top: 2px;
+  }
+  .panel-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .panel-actions button {
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink);
+  }
+  .panel-actions button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+  }
+  .snippet-box {
+    display: none;
+    margin-top: 18px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    padding: 12px;
+    font-family: monospace;
+    font-size: 0.78rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .snippet-box.show { display: block; }
+  .copy-snippet-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink);
+  }
+  .copy-snippet-btn:hover { background: var(--paper-dark); }
+  .copy-snippet-btn.copied { border-color: var(--accent); color: var(--accent); }
+
   /* ---------- Reader ---------- */
   .reader {
     position: fixed;
@@ -218,9 +353,31 @@
   <main class="archive">
     <div id="archiveGrid" class="archive-grid"></div>
     <p id="emptyNote" class="empty-note" style="display:none;">
-      尚未加入任何報紙，請在下方 ISSUES 清單中加入 PDF 檔案。
+      尚未加入任何報紙，點右上角「＋新增報紙」試著上傳一份，或在程式碼的 ISSUES 清單中加入 PDF 檔案。
     </p>
   </main>
+
+  <div class="panel-overlay" id="panelOverlay">
+    <div class="panel">
+      <h2>新增一期報紙</h2>
+      <p class="hint">
+        這裡上傳的 PDF 只會存在你目前這台裝置的瀏覽器裡，方便你自己預覽翻閱效果。
+        若要讓所有訪客都看得到，請照下方產生的說明把檔案放進網站的 papers 資料夾。
+      </p>
+      <label>選擇 PDF 檔案</label>
+      <input type="file" id="fileInput" accept="application/pdf">
+      <label>標題</label>
+      <input type="text" id="titleInput" placeholder="例如：頭版要聞">
+      <label>日期</label>
+      <input type="date" id="dateInput">
+      <div class="panel-actions">
+        <button id="panelCancel">取消</button>
+        <button id="panelSave" class="primary">加入並預覽</button>
+      </div>
+      <div class="snippet-box" id="snippetBox"></div>
+      <button id="copySnippetBtn" class="copy-snippet-btn" style="display:none;">複製這段文字</button>
+    </div>
+  </div>
 
   <div id="reader" class="reader">
     <div class="reader-bar">
@@ -233,7 +390,7 @@
     </div>
     <div class="stage-wrap">
       <div id="loadingBox" class="loading" style="display:none;">
-        正在載入報紙頁面…
+        <span id="loadingText">正在載入報紙頁面…</span>
         <div class="bar"><span id="loadingBar"></span></div>
       </div>
       <div class="stage" id="stage" style="display:none;">
@@ -258,8 +415,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
    title / date: 顯示在目錄卡片上的文字
    ========================================================= */
 const ISSUES = [
-  // { title: "頭版要聞", date: "2026-01-01", file: "papers/2026-01-01.pdf" },
-  // { title: "頭版要聞", date: "2026-01-02", file: "papers/2026-01-02.pdf" },
+  { title: "紐約時報", date: "2026-09-06", file: "papers/nytimes-2026-09-06.pdf" },
 ];
 
 const archiveGrid = document.getElementById('archiveGrid');
@@ -268,6 +424,7 @@ const reader = document.getElementById('reader');
 const stage = document.getElementById('stage');
 const loadingBox = document.getElementById('loadingBox');
 const loadingBar = document.getElementById('loadingBar');
+const loadingText = document.getElementById('loadingText');
 const readerTitle = document.getElementById('readerTitle');
 const pageCounter = document.getElementById('pageCounter');
 const downloadLink = document.getElementById('downloadLink');
@@ -275,61 +432,190 @@ const underImg = document.getElementById('underImg');
 const frontImg = document.getElementById('frontImg');
 const backImg = document.getElementById('backImg');
 const flipPage = document.getElementById('flipPage');
+const panelOverlay = document.getElementById('panelOverlay');
+const fileInput = document.getElementById('fileInput');
+const titleInput = document.getElementById('titleInput');
+const dateInput = document.getElementById('dateInput');
+const snippetBox = document.getElementById('snippetBox');
 
 let currentPages = [];   // data URLs for the currently open issue
 let currentIndex = 0;    // 0-based index of the page currently on top
 let isAnimating = false;
 
-/* ---------- Build archive grid ---------- */
-if (ISSUES.length === 0) {
-  emptyNote.style.display = 'block';
-} else {
-  ISSUES.forEach((issue, i) => {
-    const card = document.createElement('div');
-    card.className = 'issue-card';
-    card.innerHTML = `
-      <div class="issue-thumb" id="thumb-${i}"><span class="placeholder">載入中…</span></div>
-      <div class="issue-date">${issue.date}</div>
-      <div class="issue-title">${issue.title}</div>
-    `;
-    card.addEventListener('click', () => openIssue(issue));
-    archiveGrid.appendChild(card);
-    renderThumb(issue, i);
+/* =========================================================
+   本機儲存（IndexedDB）——讓使用者可以用「＋新增報紙」按鈕
+   直接在瀏覽器裡上傳 PDF 預覽，但這些檔案只存在使用者
+   自己的裝置上，不會出現在其他訪客的畫面。
+   ========================================================= */
+const DB_NAME = 'newspaperArchiveDB';
+const STORE_NAME = 'issues';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
 }
 
-async function renderThumb(issue, i) {
+async function dbAdd(record) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).add(record);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ---------- Build archive grid (static ISSUES + local uploads) ---------- */
+async function buildArchive() {
+  archiveGrid.innerHTML = '';
+  const localIssues = await dbGetAll();
+
+  if (ISSUES.length === 0 && localIssues.length === 0) {
+    emptyNote.style.display = 'block';
+  } else {
+    emptyNote.style.display = 'none';
+  }
+
+  ISSUES.forEach((issue, i) => {
+    const src = issue.file;
+    const card = buildCard(`static-${i}`, issue.title, issue.date, false);
+    card.addEventListener('click', () => openIssue({ title: issue.title, date: issue.date, src }));
+    archiveGrid.appendChild(card);
+    renderThumb(src, `thumb-static-${i}`);
+  });
+
+  localIssues.forEach((issue) => {
+    const objUrl = URL.createObjectURL(issue.blob);
+    const card = buildCard(`local-${issue.id}`, issue.title, issue.date, true, issue.id);
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('issue-remove')) return;
+      openIssue({ title: issue.title, date: issue.date, src: objUrl });
+    });
+    archiveGrid.appendChild(card);
+    renderThumb(objUrl, `thumb-local-${issue.id}`);
+  });
+
+  // "+ add" card always last
+  const addCard = document.createElement('div');
+  addCard.className = 'add-card';
+  addCard.innerHTML = `<span class="plus">＋</span><span>新增報紙</span>`;
+  addCard.addEventListener('click', openPanel);
+  archiveGrid.appendChild(addCard);
+}
+
+function buildCard(idKey, title, date, isLocal, dbId) {
+  const card = document.createElement('div');
+  card.className = 'issue-card';
+  card.innerHTML = `
+    <div class="issue-thumb" id="thumb-${idKey}"><span class="placeholder">載入中…</span></div>
+    <div class="issue-date">${date}${isLocal ? '<span class="local-tag">本機</span>' : ''}</div>
+    <div class="issue-title">${title}</div>
+    ${isLocal ? `<button class="issue-remove" data-id="${dbId}">移除本機檔案</button>` : ''}
+  `;
+  if (isLocal) {
+    card.querySelector('.issue-remove').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await dbDelete(dbId);
+      buildArchive();
+    });
+  }
+  return card;
+}
+
+async function renderThumb(src, thumbId) {
   try {
-    const pdf = await pdfjsLib.getDocument(issue.file).promise;
+    const pdf = await pdfjsLib.getDocument(src).promise;
     const page = await pdf.getPage(1);
     const viewport = page.getViewport({ scale: 0.5 });
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const holder = document.getElementById(`thumb-${i}`);
+    const holder = document.getElementById(thumbId);
+    if (!holder) return;
     holder.innerHTML = '';
     const img = document.createElement('img');
     img.src = canvas.toDataURL('image/jpeg', 0.8);
     holder.appendChild(img);
   } catch (e) {
-    console.error('Thumbnail failed for', issue.file, e);
+    console.error('Thumbnail failed for', src, e);
   }
 }
+
+buildArchive();
+
+/* ---------- Upload panel ---------- */
+function openPanel() {
+  fileInput.value = '';
+  titleInput.value = '';
+  dateInput.value = '';
+  snippetBox.classList.remove('show');
+  snippetBox.textContent = '';
+  panelOverlay.classList.add('open');
+}
+document.getElementById('panelCancel').addEventListener('click', () => panelOverlay.classList.remove('open'));
+
+document.getElementById('panelSave').addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  const title = titleInput.value.trim() || '未命名報紙';
+  const date = dateInput.value || new Date().toISOString().slice(0, 10);
+  if (!file) { alert('請先選擇一個 PDF 檔案'); return; }
+
+  const id = await dbAdd({ title, date, blob: file, fileName: file.name });
+
+  const suggestedPath = `papers/${date}-${file.name.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '') || 'issue'}.pdf`;
+  snippetBox.textContent =
+`若要讓所有訪客都看到這份報紙：
+1. 把「${file.name}」這個檔案放進網站的 papers 資料夾，並改名為：
+   ${suggestedPath.split('/')[1]}
+2. 在程式碼的 ISSUES 清單中加入這行：
+{ title: "${title}", date: "${date}", file: "${suggestedPath}" },
+3. 把 papers 資料夾和 index.html 一起 push 上 GitHub。`;
+  snippetBox.classList.add('show');
+
+  await buildArchive();
+});
 
 /* ---------- Open an issue in the reader ---------- */
 async function openIssue(issue) {
   reader.classList.add('open');
   readerTitle.textContent = `${issue.title} · ${issue.date}`;
-  downloadLink.href = issue.file;
+  downloadLink.href = issue.src;
   stage.style.display = 'none';
   loadingBox.style.display = 'block';
+  loadingText.textContent = '正在載入報紙頁面…';
   loadingBar.style.width = '0%';
   currentPages = [];
   currentIndex = 0;
 
   try {
-    const pdf = await pdfjsLib.getDocument(issue.file).promise;
+    const pdf = await pdfjsLib.getDocument(issue.src).promise;
     const total = pdf.numPages;
     for (let n = 1; n <= total; n++) {
       const page = await pdf.getPage(n);
@@ -345,7 +631,7 @@ async function openIssue(issue) {
     stage.style.display = 'block';
     showPage(0);
   } catch (e) {
-    loadingBox.textContent = '這份報紙載入失敗，請確認檔案路徑是否正確。';
+    loadingText.textContent = '這份報紙載入失敗，請確認檔案是否正確。';
     console.error(e);
   }
 }

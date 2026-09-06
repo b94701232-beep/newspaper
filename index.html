@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>電子報典藏</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EAE3D0;
+    --paper-dark: #DCD2B4;
+    --ink: #201C16;
+    --accent: #8B2E2E;
+    --rule: #B49B6C;
+    --muted: #6E6656;
+    --paper-shadow: rgba(32,28,22,0.18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 48px 24px 20px;
+    text-align: center;
+    border-bottom: 3px double var(--rule);
+  }
+  .masthead h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Archive grid ---------- */
+  .archive {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .issue-card {
+    background: var(--paper);
+    padding: 18px 16px 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: background 0.15s ease;
+  }
+  .issue-card:hover { background: var(--paper-dark); }
+  .issue-thumb {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #fff;
+    border: 1px solid var(--rule);
+    box-shadow: 2px 2px 0 var(--paper-shadow);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .issue-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .issue-thumb .placeholder {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .issue-date {
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .issue-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    line-height: 1.3;
+  }
+  .empty-note {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+  }
+
+  /* ---------- Reader ---------- */
+  .reader {
+    position: fixed;
+    inset: 0;
+    background: #14110D;
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+  }
+  .reader.open { display: flex; }
+  .reader-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    color: var(--paper);
+    font-family: 'IBM Plex Sans', sans-serif;
+    border-bottom: 1px solid rgba(234,227,208,0.2);
+    flex-shrink: 0;
+  }
+  .reader-bar button, .reader-bar a {
+    background: none;
+    border: 1px solid rgba(234,227,208,0.4);
+    color: var(--paper);
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .reader-bar button:hover, .reader-bar a:hover { background: rgba(234,227,208,0.12); }
+  .reader-title { font-family: 'Fraunces', serif; font-size: 1.05rem; }
+  .reader-controls { display: flex; gap: 8px; align-items: center; }
+  .page-counter { font-size: 0.8rem; color: var(--rule); min-width: 60px; text-align: center; }
+
+  .stage-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    height: 88%;
+    aspect-ratio: 0.72;
+    perspective: 2400px;
+  }
+  .under-page, .flip-page {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .under-page img, .flip-page .face img {
+    width: 100%; height: 100%; object-fit: contain; display: block; background: #fff;
+  }
+  .flip-page {
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    transition: transform 0.75s cubic-bezier(.4,.1,.2,1);
+    z-index: 2;
+  }
+  .flip-page.turning-next { transform: rotateY(-180deg); }
+  .flip-page.turning-prev { transform: rotateY(180deg); }
+  .flip-page .face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+  }
+  .flip-page .face.back { transform: rotateY(180deg); }
+
+  .nav-zone {
+    position: absolute; top: 0; bottom: 0; width: 18%;
+    background: transparent; border: none; cursor: pointer;
+    z-index: 5;
+  }
+  .nav-zone.left { left: 0; }
+  .nav-zone.right { right: 0; }
+  .nav-zone:hover { background: rgba(255,255,255,0.03); }
+
+  .loading {
+    color: var(--paper);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    text-align: center;
+  }
+  .loading .bar {
+    width: 220px; height: 3px; background: rgba(234,227,208,0.2);
+    margin: 14px auto 0; overflow: hidden;
+  }
+  .loading .bar span {
+    display: block; height: 100%; background: var(--accent); width: 0%;
+    transition: width 0.2s ease;
+  }
+
+  @media (max-width: 640px) {
+    .stage { height: 82%; }
+    .reader-title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <h1>電子報典藏</h1>
+    <p>點選日期，翻閱當日報紙</p>
+  </header>
+
+  <main class="archive">
+    <div id="archiveGrid" class="archive-grid"></div>
+    <p id="emptyNote" class="empty-note" style="display:none;">
+      尚未加入任何報紙，請在下方 ISSUES 清單中加入 PDF 檔案。
+    </p>
+  </main>
+
+  <div id="reader" class="reader">
+    <div class="reader-bar">
+      <div class="reader-title" id="readerTitle">—</div>
+      <div class="reader-controls">
+        <span class="page-counter" id="pageCounter">– / –</span>
+        <a id="downloadLink" href="#" download>下載原檔</a>
+        <button id="closeBtn">← 返回目錄</button>
+      </div>
+    </div>
+    <div class="stage-wrap">
+      <div id="loadingBox" class="loading" style="display:none;">
+        正在載入報紙頁面…
+        <div class="bar"><span id="loadingBar"></span></div>
+      </div>
+      <div class="stage" id="stage" style="display:none;">
+        <div class="under-page" id="underPage"><img id="underImg" alt=""></div>
+        <div class="flip-page" id="flipPage">
+          <div class="face front"><img id="frontImg" alt=""></div>
+          <div class="face back"><img id="backImg" alt=""></div>
+        </div>
+        <button class="nav-zone left" id="prevZone" aria-label="上一頁"></button>
+        <button class="nav-zone right" id="nextZone" aria-label="下一頁"></button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+/* =========================================================
+   編輯這份清單來加入你的報紙。
+   file: PDF 檔案的相對路徑（建議放進一個 papers/ 資料夾）
+   title / date: 顯示在目錄卡片上的文字
+   ========================================================= */
+const ISSUES = [
+  // { title: "頭版要聞", date: "2026-01-01", file: "papers/2026-01-01.pdf" },
+  // { title: "頭版要聞", date: "2026-01-02", file: "papers/2026-01-02.pdf" },
+];
+
+const archiveGrid = document.getElementById('archiveGrid');
+const emptyNote = document.getElementById('emptyNote');
+const reader = document.getElementById('reader');
+const stage = document.getElementById('stage');
+const loadingBox = document.getElementById('loadingBox');
+const loadingBar = document.getElementById('loadingBar');
+const readerTitle = document.getElementById('readerTitle');
+const pageCounter = document.getElementById('pageCounter');
+const downloadLink = document.getElementById('downloadLink');
+const underImg = document.getElementById('underImg');
+const frontImg = document.getElementById('frontImg');
+const backImg = document.getElementById('backImg');
+const flipPage = document.getElementById('flipPage');
+
+let currentPages = [];   // data URLs for the currently open issue
+let currentIndex = 0;    // 0-based index of the page currently on top
+let isAnimating = false;
+
+/* ---------- Build archive grid ---------- */
+if (ISSUES.length === 0) {
+  emptyNote.style.display = 'block';
+} else {
+  ISSUES.forEach((issue, i) => {
+    const card = document.createElement('div');
+    card.className = 'issue-card';
+    card.innerHTML = `
+      <div class="issue-thumb" id="thumb-${i}"><span class="placeholder">載入中…</span></div>
+      <div class="issue-date">${issue.date}</div>
+      <div class="issue-title">${issue.title}</div>
+    `;
+    card.addEventListener('click', () => openIssue(issue));
+    archiveGrid.appendChild(card);
+    renderThumb(issue, i);
+  });
+}
+
+async function renderThumb(issue, i) {
+  try {
+    const pdf = await pdfjsLib.getDocument(issue.file).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 0.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const holder = document.getElementById(`thumb-${i}`);
+    holder.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/jpeg', 0.8);
+    holder.appendChild(img);
+  } catch (e) {
+    console.error('Thumbnail failed for', issue.file, e);
+  }
+}
+
+/* ---------- Open an issue in the reader ---------- */
+async function openIssue(issue) {
+  reader.classList.add('open');
+  readerTitle.textContent = `${issue.title} · ${issue.date}`;
+  downloadLink.href = issue.file;
+  stage.style.display = 'none';
+  loadingBox.style.display = 'block';
+  loadingBar.style.width = '0%';
+  currentPages = [];
+  currentIndex = 0;
+
+  try {
+    const pdf = await pdfjsLib.getDocument(issue.file).promise;
+    const total = pdf.numPages;
+    for (let n = 1; n <= total; n++) {
+      const page = await pdf.getPage(n);
+      const viewport = page.getViewport({ scale: 1.6 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      currentPages.push(canvas.toDataURL('image/jpeg', 0.85));
+      loadingBar.style.width = `${Math.round((n / total) * 100)}%`;
+    }
+    loadingBox.style.display = 'none';
+    stage.style.display = 'block';
+    showPage(0);
+  } catch (e) {
+    loadingBox.textContent = '這份報紙載入失敗，請確認檔案路徑是否正確。';
+    console.error(e);
+  }
+}
+
+function showPage(index) {
+  currentIndex = Math.max(0, Math.min(index, currentPages.length - 1));
+  frontImg.src = currentPages[currentIndex];
+  underImg.src = currentPages[currentIndex];
+  backImg.src = currentPages[currentIndex];
+  pageCounter.textContent = `${currentIndex + 1} / ${currentPages.length}`;
+}
+
+function nextPage() {
+  if (isAnimating || currentIndex >= currentPages.length - 1) return;
+  isAnimating = true;
+  const nextIdx = currentIndex + 1;
+  underImg.src = currentPages[nextIdx];
+  backImg.src = currentPages[nextIdx];
+  flipPage.classList.add('turning-next');
+  setTimeout(() => {
+    flipPage.classList.remove('turning-next');
+    flipPage.style.transition = 'none';
+    currentIndex = nextIdx;
+    frontImg.src = currentPages[currentIndex];
+    pageCounter.textContent = `${currentIndex + 1} / ${currentPages.length}`;
+    requestAnimationFrame(() => { flipPage.style.transition = ''; isAnimating = false; });
+  }, 760);
+}
+
+function prevPage() {
+  if (isAnimating || currentIndex <= 0) return;
+  isAnimating = true;
+  const prevIdx = currentIndex - 1;
+  frontImg.src = currentPages[prevIdx];
+  backImg.src = currentPages[currentIndex];
+  underImg.src = currentPages[prevIdx];
+  flipPage.style.transition = 'none';
+  flipPage.classList.add('turning-prev');
+  requestAnimationFrame(() => {
+    flipPage.style.transition = '';
+    flipPage.classList.remove('turning-prev');
+  });
+  setTimeout(() => {
+    currentIndex = prevIdx;
+    pageCounter.textContent = `${currentIndex + 1} / ${currentPages.length}`;
+    isAnimating = false;
+  }, 760);
+}
+
+document.getElementById('nextZone').addEventListener('click', nextPage);
+document.getElementById('prevZone').addEventListener('click', prevPage);
+document.getElementById('closeBtn').addEventListener('click', () => {
+  reader.classList.remove('open');
+});
+document.addEventListener('keydown', (e) => {
+  if (!reader.classList.contains('open')) return;
+  if (e.key === 'ArrowRight') nextPage();
+  if (e.key === 'ArrowLeft') prevPage();
+  if (e.key === 'Escape') reader.classList.remove('open');
+});
+</script>
+</body>
+</html>
